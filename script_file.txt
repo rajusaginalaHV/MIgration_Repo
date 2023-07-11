@@ -51,7 +51,7 @@ pipeline {
 					def DMsoapRequest=''
 					
 					DMPATHTODEPLOY=(params.Data_Model_PATHTODEPLOY).toString()+"/"+(params.DataModel_NAME).toString().replace(".xdmz","")
-					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" "
+					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdmz"
 					DMactualreportname = (params.DataModel_NAME).replace(".xdmz",".xdm")
 					DMreportObjectAbsolutePath=((params.Data_Model_PATHTODEPLOY)+"/"+(DMactualreportname))
 					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
@@ -114,7 +114,7 @@ pipeline {
 					def BIsoapRequest=''
 					
 					BIPATHTODEPLOY=(params.BI_PATHTODEPLOY).toString()+"/"+(params.BI_NAME).toString().replace(".xdoz","")
-					bat " java EncodeToBase64  ${BI_NAME} BIPayload.xml ${BIPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" "
+					bat " java EncodeToBase64  ${BI_NAME} BIPayload.xml ${BIPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdoz"
 					BIactualreportname = (params.BI_NAME).replace(".xdoz",".xdo")
 					BIreportObjectAbsolutePath=((params.BI_PATHTODEPLOY)+"/"+(BIactualreportname))
 					BIsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
