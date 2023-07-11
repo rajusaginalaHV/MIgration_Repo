@@ -100,7 +100,7 @@ pipeline {
 
                     echo "HTTP response status code: ${DM_status_code}"
 
-                    if(DM_status_code == 200){
+                    if(DM_status_code == "200"){
 						echo "Data Model uploaded successfully!"
 					}
 					else{
@@ -168,7 +168,7 @@ pipeline {
 
                     echo "HTTP response status code: ${BI_status_code}"
 
-                    if(BI_status_code == 200){
+                    if(BI_status_code == "200"){
 						echo "BI Report uploaded successfully!"
 					}
 					else{
