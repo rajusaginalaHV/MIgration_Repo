@@ -31,10 +31,10 @@ pipeline {
 					
 					for(def choice:choices){
 						if(choice == 'BI Report'){
-							env.DataModel = true
+							env.BI_Report = true
 						}
 						else if(choice == 'Data Model'){
-							env.BI_Report = true
+							env.DataModel = true
 						}
 					}
 					
