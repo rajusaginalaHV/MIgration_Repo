@@ -16,9 +16,9 @@ def Update_details(instance_selected){
 		env.serviceUrl = env.ERZP_URL
 	}
 	else if(instance_selected.equals("ESSL_URL")){
-		env.Username = env.ESSL_CREDS_USR
-		env.Password = env.ESSL_CREDS_PSW
-		env.serviceUrl = env.ESSL_URL
+		env.Username = env.ESLL_CREDS_USR
+		env.Password = env.ESLL_CREDS_PSW
+		env.serviceUrl = env.ESLL_URL
 	}
 }
 
@@ -26,13 +26,13 @@ pipeline {
     agent any
     environment {
         ERZP_CREDS = credentials('fa-erzp-credentials')
-		ESSL_CREDS = credentials('fa-essl-credentials')
+		ESLL_CREDS = credentials('fa-esll-credentials')
     }
     stages {
         stage('Generate payload') {
             steps {
                 script {
-					println env.ERZP_CREDS_USR
+					// println env.ERZP_CREDS_USR
 					// println $ERZP_URL
                     Update_details((params.Target_Instance).toString())
 					env.pwd = (env.Password).toString()
