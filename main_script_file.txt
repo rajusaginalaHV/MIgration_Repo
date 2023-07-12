@@ -13,8 +13,7 @@ def passwordHandler(String input) {
 pipeline {
     agent any
 	environment{
-		target_instance = params.Target_Instance[0]
-		if(target_instance.equalsTo("ERZP_URL")){
+		if((params.Target_Instance[0]).toString().equalsTo("ERZP_URL")){
 			CREDS = credentials('fa-erzp-credentials')
 			env.serviceUrl = env.ERZP_URL
 		}
@@ -26,6 +25,7 @@ pipeline {
     stages {
         stage('Generate payload') {
             steps {
+			
                 script {
 					
 					env.pwd = (env.CREDS_PSW).toString()
