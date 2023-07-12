@@ -20,6 +20,11 @@ def Update_details(instance_selected){
 		env.PSW = env.ESLL_CREDS_PSW
 		env.serviceUrl = env.ESLL_URL
 	}
+	else if(instance_selected.equals("ETIT_URL")){
+		env.USR = env.ESLL_CREDS_USR
+		env.PSW = env.ESLL_CREDS_PSW
+		env.serviceUrl = env.ETIT_URL
+	}
 }
 
 pipeline {
@@ -27,13 +32,13 @@ pipeline {
     environment {
         ERZP_CREDS = credentials('fa-erzp-credentials')
 		ESLL_CREDS = credentials('fa-esll-credentials')
+		ETIT_CREDS = credentials('fa-etit-credentials')
     }
     stages {
         stage('Generate payload') {
             steps {
                 script {
-					// println env.ERZP_CREDS_USR
-					// println $ERZP_URL
+					
                     Update_details((params.Target_Instance).toString())
 					env.pwd = (env.PSW).toString()
                     env.hasPercentage = (pwd).contains('%')
