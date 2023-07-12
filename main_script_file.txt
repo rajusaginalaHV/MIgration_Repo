@@ -21,8 +21,8 @@ def Update_details(instance_selected){
 		env.serviceUrl = env.ESLL_URL
 	}
 	else if(instance_selected.equals("ETIT_URL")){
-		env.USR = env.ESLL_CREDS_USR
-		env.PSW = env.ESLL_CREDS_PSW
+		env.USR = env.ETIT_CREDS_USR
+		env.PSW = env.ETIT_CREDS_PSW
 		env.serviceUrl = env.ETIT_URL
 	}
 }
