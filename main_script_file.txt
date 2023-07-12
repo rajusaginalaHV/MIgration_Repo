@@ -1,0 +1,179 @@
+// script for Data Model & BI Report migration
+def passwordHandler(String input) {
+   StringBuilder result = new StringBuilder()
+		for (int i = 0; i < input.length(); i++) {
+			if (input.charAt(i) == '%') {
+				result.append('%')
+            }
+			result.append(input.charAt(i))
+		}
+        return result.toString()
+}
+
+pipeline {
+    agent any
+	environment{
+		def target_instance = params.Target_Instance[0]
+		if(target_instance.equalsTo("ERZP_URL")){
+			CREDS = credentials('fa-erzp-credentials')
+			env.serviceUrl = env.ERZP_URL
+		}
+		else{
+			CREDS = credentials('fa-essl-credentials')
+			env.serviceUrl = env.ESSL_URL
+		}
+	}
+    stages {
+        stage('Generate payload') {
+            steps {
+                script {
+					
+					env.pwd = (env.CREDS_PSW).toString()
+                    env.hasPercentage = (pwd).contains('%')
+					if (hasPercentage) {
+						env.PASSWORD1=passwordHandler(pwd)
+					}
+					def choices = params.Choice.split(",")
+					
+					for(def choice:choices){
+						if(choice == 'BI Report'){
+							env.BI_Report = true
+						}
+						else if(choice == 'Data Model'){
+							env.DataModel = true
+						}
+					}
+				}
+			}
+		}
+		stage('Data_Model'){
+			when{
+				expression {env.DataModel}
+			}
+			steps{
+				script{
+					def DMPATHTODEPLOY=''
+					def DMactualreportname=''
+					def DMreportObjectAbsolutePath=''
+					def DMsoapRequest=''
+					
+					DMPATHTODEPLOY=(params.Data_Model_PATHTODEPLOY).toString()+"/"+(params.DataModel_NAME).toString().replace(".xdmz","")
+					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdmz"
+					DMactualreportname = (params.DataModel_NAME).replace(".xdmz",".xdm")
+					DMreportObjectAbsolutePath=((params.Data_Model_PATHTODEPLOY)+"/"+(DMactualreportname))
+					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+					writeFile file: 'DM_object_exist_soap_request.xml', text: DMsoapRequest
+					
+					// Execute the SOAP web service call using curl	
+					def objectexist_command = "curl --silent --header 'Content-Type: text/xml' --data @DM_object_exist_soap_request.xml ${env.serviceUrl}"
+					def DMobject_exist_soap_response = bat(returnStdout: true, script: objectexist_command)
+					writeFile file: 'DMobject_exist_soap_response.xml', text: DMobject_exist_soap_response
+					
+					if(DMobject_exist_soap_response.contains("<objectExistReturn>true</objectExistReturn>")){
+						echo "Data Model Exists \n Deleting Data Model"
+						def DMsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+
+						
+						// Write the SOAP request to a file
+						
+						writeFile file: 'DMdeleteObject_SoapRequest.xml', text: DMsoapRequest2
+						
+						
+						
+						// Execute the SOAP web service call using curl
+						def DMdeleteObjectcommand = "curl --silent --header 'Content-Type: text/xml' --data @DMdeleteObject_SoapRequest.xml ${env.serviceUrl}"
+						def DMdeleteObject_soap_response = bat(returnStdout: true, script: DMdeleteObjectcommand)
+						
+						if(DMdeleteObject_soap_response.contains("<deleteObjectReturn>true</deleteObjectReturn>")){
+							println "Data Model Deleted"
+						}
+						
+						// save deleteObject soap response
+						
+						writeFile file: 'DMdeleteObject_soap_response.xml', text: DMdeleteObject_soap_response
+						
+					}
+					else{
+						echo "Data Model doesn't exist \n Uploading Data Model"
+					}
+					DM_status_code = bat(returnStdout: true, script: "curl --output DMoutput.gzip -w \"%%{http_code}\" --silent --header \"Content-Type:application/xml\" -d @DMPayload.xml ${env.serviceUrl}").trim().split("\n")[1]
+
+                    echo "HTTP response status code: ${DM_status_code}"
+
+                    if(DM_status_code == "200"){
+						echo "Data Model uploaded successfully!"
+					}
+					else{
+						echo "Data Model uplaod failed. Check DMoutput.gzip for error"
+					}
+				}
+			}
+		}
+		stage('BI_Report'){
+			when{
+				expression {env.BI_Report}
+			}
+			steps{
+				script{
+					def BIPATHTODEPLOY=''
+					def BIactualreportname=''
+					def BIreportObjectAbsolutePath=''
+					def BIsoapRequest=''
+					
+					BIPATHTODEPLOY=(params.BI_PATHTODEPLOY).toString()+"/"+(params.BI_NAME).toString().replace(".xdoz","")
+					bat " java EncodeToBase64  ${BI_NAME} BIPayload.xml ${BIPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdoz"
+					BIactualreportname = (params.BI_NAME).replace(".xdoz",".xdo")
+					BIreportObjectAbsolutePath=((params.BI_PATHTODEPLOY)+"/"+(BIactualreportname))
+					BIsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+					writeFile file: 'BI_object_exist_soap_request.xml', text: BIsoapRequest
+					
+					// Execute the SOAP web service call using curl	
+					def objectexist_command = "curl --silent --header 'Content-Type: text/xml' --data @BI_object_exist_soap_request.xml ${env.serviceUrl}"
+					def BIobject_exist_soap_response = bat(returnStdout: true, script: objectexist_command)
+					writeFile file: 'BIobject_exist_soap_response.xml', text: BIobject_exist_soap_response
+					
+					if(BIobject_exist_soap_response.contains("<objectExistReturn>true</objectExistReturn>")){
+						echo "BI Report Exists \n Deleting BI Report"
+						def BIsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+
+						
+						// Write the SOAP request to a file
+						
+						writeFile file: 'BIdeleteObject_SoapRequest.xml', text: BIsoapRequest2
+						
+						
+						
+						// Execute the SOAP web service call using curl
+						def BIdeleteObjectcommand = "curl --silent --header 'Content-Type: text/xml' --data @BIdeleteObject_SoapRequest.xml ${env.serviceUrl}"
+						def BIdeleteObject_soap_response = bat(returnStdout: true, script: BIdeleteObjectcommand)
+						
+						
+						
+						if(BIdeleteObject_soap_response.contains("<deleteObjectReturn>true</deleteObjectReturn>")){
+							println "BI Report Deleted"
+						}
+						
+						// save deleteObject soap response
+						
+						writeFile file: 'BIdeleteObject_soap_response.xml', text: BIdeleteObject_soap_response
+						
+					}
+					else{
+						echo "BI Report doesn't exist \n Uploading BI Report"
+					}
+					BI_status_code = bat(returnStdout: true, script: "curl --output BIoutput.gzip -w \"%%{http_code}\" --silent --header \"Content-Type:application/xml\" -d @BIPayload.xml ${env.serviceUrl}").trim().split("\n")[1]
+
+                    echo "HTTP response status code: ${BI_status_code}"
+
+                    if(BI_status_code == "200"){
+						echo "BI Report uploaded successfully!"
+					}
+					else{
+						echo "BI Report uplaod failed. Check BIoutput.gzip for error"
+					}
+				}
+				
+			}
+		}
+    }
+}
