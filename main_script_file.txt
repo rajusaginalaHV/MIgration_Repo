@@ -9,35 +9,33 @@ def passwordHandler(String input) {
 		}
         return result.toString()
 }
-def Update_cred(branchName) {
-    if("ERZP_URL".equals(branchName)) {
-        return credentials('fa-erzp-credentials');
-    } else if ("ESSL_URL".equals(branchName)) {
-        return credentials('fa-essl-credentials');
-    }
+def Update_details(instance_selected){
+	if(instance_selected.equals("ERZP_URL")){
+		env.Username = env.ERZP_CREDS_USR
+		env.Password = env.ERZP_CREDS_PSW
+		env.serviceUrl = env.ERZP_URL
+	}
+	else if(instance_selected.equals("ESSL_URL")){
+		env.Username = env.ESSL_CREDS_USR
+		env.Password = env.ESSL_CREDS_PSW
+		env.serviceUrl = env.ESSL_URL
+	}
 }
+
 pipeline {
     agent any
-	environment{
-		//if((params.Target_Instance[0]).toString().equalsTo("ERZP_URL")){
-		//	CREDS = credentials('fa-erzp-credentials')
-		//	env.serviceUrl = env.ERZP_URL
-		//}
-		//else{
-		//	CREDS = credentials('fa-essl-credentials')
-		//	env.serviceUrl = env.ESSL_URL
-		//}
-		
-		CREDS = Update_cred((params.Target_Instance[0]).toString())
-		
-	}
+    environment {
+        ERZP_CREDS = credentials('fa-erzp-credentials')
+		ESSL_CREDS = credentials('fa-essl-credentials')
+    }
     stages {
         stage('Generate payload') {
             steps {
-			
                 script {
-					
-					env.pwd = (env.CREDS_PSW).toString()
+					println env.ERZP_CREDS_USR
+					// println $ERZP_URL
+                    Update_details((params.Target_Instance).toString())
+					env.pwd = (env.Password).toString()
                     env.hasPercentage = (pwd).contains('%')
 					if (hasPercentage) {
 						env.PASSWORD1=passwordHandler(pwd)
@@ -67,10 +65,10 @@ pipeline {
 					def DMsoapRequest=''
 					
 					DMPATHTODEPLOY=(params.Data_Model_PATHTODEPLOY).toString()+"/"+(params.DataModel_NAME).toString().replace(".xdmz","")
-					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdmz"
+					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.Username} \"${env.PASSWORD1}\" xdmz"
 					DMactualreportname = (params.DataModel_NAME).replace(".xdmz",".xdm")
 					DMreportObjectAbsolutePath=((params.Data_Model_PATHTODEPLOY)+"/"+(DMactualreportname))
-					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.Username + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
 					writeFile file: 'DM_object_exist_soap_request.xml', text: DMsoapRequest
 					
 					// Execute the SOAP web service call using curl	
@@ -80,7 +78,7 @@ pipeline {
 					
 					if(DMobject_exist_soap_response.contains("<objectExistReturn>true</objectExistReturn>")){
 						echo "Data Model Exists \n Deleting Data Model"
-						def DMsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+						def DMsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.Username + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
 
 						
 						// Write the SOAP request to a file
@@ -130,10 +128,10 @@ pipeline {
 					def BIsoapRequest=''
 					
 					BIPATHTODEPLOY=(params.BI_PATHTODEPLOY).toString()+"/"+(params.BI_NAME).toString().replace(".xdoz","")
-					bat " java EncodeToBase64  ${BI_NAME} BIPayload.xml ${BIPATHTODEPLOY} ${env.CREDS_USR} \"${env.PASSWORD1}\" xdoz"
+					bat " java EncodeToBase64  ${BI_NAME} BIPayload.xml ${BIPATHTODEPLOY} ${env.Username} \"${env.PASSWORD1}\" xdoz"
 					BIactualreportname = (params.BI_NAME).replace(".xdoz",".xdo")
 					BIreportObjectAbsolutePath=((params.BI_PATHTODEPLOY)+"/"+(BIactualreportname))
-					BIsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+					BIsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.Username + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
 					writeFile file: 'BI_object_exist_soap_request.xml', text: BIsoapRequest
 					
 					// Execute the SOAP web service call using curl	
@@ -143,7 +141,7 @@ pipeline {
 					
 					if(BIobject_exist_soap_response.contains("<objectExistReturn>true</objectExistReturn>")){
 						echo "BI Report Exists \n Deleting BI Report"
-						def BIsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.CREDS_USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+						def BIsoapRequest2 = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:deleteObject> \r\n <v2:objectAbsolutePath>" + BIreportObjectAbsolutePath + "</v2:objectAbsolutePath> \r\n <v2:userID>" + env.Username + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:deleteObject> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
 
 						
 						// Write the SOAP request to a file
