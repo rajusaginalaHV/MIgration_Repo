@@ -9,18 +9,27 @@ def passwordHandler(String input) {
 		}
         return result.toString()
 }
-
+def Update_cred(branchName) {
+    if("ERZP_URL".equals(branchName)) {
+        return credentials('fa-erzp-credentials');
+    } else if ("ESSL_URL".equals(branchName)) {
+        return credentials('fa-essl-credentials');
+    }
+}
 pipeline {
     agent any
 	environment{
-		if((params.Target_Instance[0]).toString().equalsTo("ERZP_URL")){
-			CREDS = credentials('fa-erzp-credentials')
-			env.serviceUrl = env.ERZP_URL
-		}
-		else{
-			CREDS = credentials('fa-essl-credentials')
-			env.serviceUrl = env.ESSL_URL
-		}
+		//if((params.Target_Instance[0]).toString().equalsTo("ERZP_URL")){
+		//	CREDS = credentials('fa-erzp-credentials')
+		//	env.serviceUrl = env.ERZP_URL
+		//}
+		//else{
+		//	CREDS = credentials('fa-essl-credentials')
+		//	env.serviceUrl = env.ESSL_URL
+		//}
+		
+		CREDS = Update_cred((params.Target_Instance[0]).toString())
+		
 	}
     stages {
         stage('Generate payload') {
