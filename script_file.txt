@@ -20,7 +20,7 @@ pipeline {
             steps {
                 script {
 					// Set the URL of the SOAP web service
-					env.serviceUrl = "https://fa-erzp-dev12-saasfademo1.ds-fa.oraclepdemos.com:443/xmlpserver/services/v2/CatalogService"
+					env.serviceUrl = ${ERZP_URL}
 					env.pwd = (env.CREDS_PSW).toString()
                     env.hasPercentage = (pwd).contains('%')
 					if (hasPercentage) {
