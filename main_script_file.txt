@@ -78,7 +78,7 @@ pipeline {
 					if(choices.contains('BI Report')){
 						env.BI_Report = true
 					}
-					else if(choices.contains('Data Model')){
+					if(choices.contains('Data Model')){
 						env.DataModel = true
 					}
 					
