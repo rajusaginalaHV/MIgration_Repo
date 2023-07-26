@@ -40,6 +40,26 @@ pipeline {
 		ETIT_CREDS = credentials('fa-etit-credentials')
 		EQJZ_CREDS = credentials('fa-eqjz-credentials')
     }
+	stage('Build') {
+			when{
+				expression {GitRelease.contains('Yes')}
+			}
+            steps {
+                script {
+                    // Define the Git repository URL
+                    def gitRepoUrl = 'https://github.com/rajusaginalaHV/MIgration_Repo.git'
+
+                    // Get the selected release version from the user parameter
+                    def selectedRelease = "${params.RELEASE_VERSION}"
+
+                    // Clone the repository to a temporary directory and checkout the selected release tag
+                    def gitCloneDir = checkout([$class: 'GitSCM', branches: [[name: selectedRelease]], 
+                                               userRemoteConfigs: [[url: gitRepoUrl]]])
+                    
+                    // Rest of your build steps
+                }
+            }
+    }
     stages {
         stage('Generate payload') {
             steps {
@@ -53,14 +73,15 @@ pipeline {
 					}
 					def choices = params.Choice.split(",")
 					
-					for(def choice:choices){
-						if(choice == 'BI Report'){
-							env.BI_Report = true
-						}
-						else if(choice == 'Data Model'){
-							env.DataModel = true
-						}
+					
+					
+					if(choices.contains('BI Report')){
+						env.BI_Report = true
 					}
+					else if(choices.contains('Data Model')){
+						env.DataModel = true
+					}
+					
 				}
 			}
 		}
