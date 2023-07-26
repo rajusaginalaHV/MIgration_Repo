@@ -40,7 +40,8 @@ pipeline {
 		ETIT_CREDS = credentials('fa-etit-credentials')
 		EQJZ_CREDS = credentials('fa-eqjz-credentials')
     }
-	stage('Build') {
+    stages {
+		stage('Build') {
 			when{
 				expression {GitRelease.contains('Yes')}
 			}
@@ -59,8 +60,7 @@ pipeline {
                     // Rest of your build steps
                 }
             }
-    }
-    stages {
+		}
         stage('Generate payload') {
             steps {
                 script {
