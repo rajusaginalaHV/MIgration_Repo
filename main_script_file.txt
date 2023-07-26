@@ -52,7 +52,7 @@ pipeline {
 
                     // Get the selected release version from the user parameter
                     def selectedRelease = "${params.RELEASE_VERSION}"
-
+			echo 'Release selection worked!'
                     // Clone the repository to a temporary directory and checkout the selected release tag
                     def gitCloneDir = checkout([$class: 'GitSCM', branches: [[name: selectedRelease]], 
                                                userRemoteConfigs: [[url: gitRepoUrl]]])
