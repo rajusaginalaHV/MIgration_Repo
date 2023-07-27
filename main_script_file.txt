@@ -25,7 +25,7 @@ def Update_details(instance_selected){
 		env.PSW = env.ETIT_CREDS_PSW
 		env.serviceUrl = env.ETIT_URL
 	}
-	else if(instance_selected.equals("EQJZ_URL"){
+	else if(instance_selected.equals("EQJZ_URL")){
 		env.USR = env.EQJZ_CREDS_USR
 		env.PSW = env.EQJZ_CREDS_PSW
 		env.serviceUrl = env.EQJZ_URL
@@ -40,7 +40,8 @@ pipeline {
 		ETIT_CREDS = credentials('fa-etit-credentials')
 		EQJZ_CREDS = credentials('fa-eqjz-credentials')
     }
-	stage('Build') {
+    stages {
+		stage('Build') {
 			when{
 				expression {GitRelease.contains('Yes')}
 			}
@@ -51,7 +52,7 @@ pipeline {
 
                     // Get the selected release version from the user parameter
                     def selectedRelease = "${params.RELEASE_VERSION}"
-
+			echo 'Release selection worked!'
                     // Clone the repository to a temporary directory and checkout the selected release tag
                     def gitCloneDir = checkout([$class: 'GitSCM', branches: [[name: selectedRelease]], 
                                                userRemoteConfigs: [[url: gitRepoUrl]]])
@@ -59,8 +60,7 @@ pipeline {
                     // Rest of your build steps
                 }
             }
-    }
-    stages {
+		}
         stage('Generate payload') {
             steps {
                 script {
@@ -78,7 +78,7 @@ pipeline {
 					if(choices.contains('BI Report')){
 						env.BI_Report = true
 					}
-					else if(choices.contains('Data Model')){
+					if(choices.contains('Data Model')){
 						env.DataModel = true
 					}
 					
