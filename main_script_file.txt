@@ -10,25 +10,20 @@ def passwordHandler(String input) {
         return result.toString()
 }
 def Update_details(instance_selected){
-	if(instance_selected.equals("ERZP_URL")){
+	if(instance_selected.equals("UAT")){
 		env.USR = env.ERZP_CREDS_USR
 		env.PSW = env.ERZP_CREDS_PSW
 		env.serviceUrl = env.ERZP_URL
 	}
-	else if(instance_selected.equals("ESLL_URL")){
+	else if(instance_selected.equals("PROD")){
 		env.USR = env.ESLL_CREDS_USR
 		env.PSW = env.ESLL_CREDS_PSW
 		env.serviceUrl = env.ESLL_URL
 	}
-	else if(instance_selected.equals("ETIT_URL")){
+	else if(instance_selected.equals("DEV")){
 		env.USR = env.ETIT_CREDS_USR
 		env.PSW = env.ETIT_CREDS_PSW
 		env.serviceUrl = env.ETIT_URL
-	}
-	else if(instance_selected.equals("EQJZ_URL")){
-		env.USR = env.EQJZ_CREDS_USR
-		env.PSW = env.EQJZ_CREDS_PSW
-		env.serviceUrl = env.EQJZ_URL
 	}
 }
 
@@ -38,7 +33,6 @@ pipeline {
         ERZP_CREDS = credentials('fa-erzp-credentials')
 		ESLL_CREDS = credentials('fa-esll-credentials')
 		ETIT_CREDS = credentials('fa-etit-credentials')
-		EQJZ_CREDS = credentials('fa-eqjz-credentials')
     }
     stages {
 		stage('Build') {
@@ -52,36 +46,32 @@ pipeline {
 
                     // Get the selected release version from the user parameter
                     def selectedRelease = "${params.RELEASE_VERSION}"
-			echo 'Release selection worked!'
-                    // Clone the repository to a temporary directory and checkout the selected release tag
-                    def gitCloneDir = checkout([$class: 'GitSCM', branches: [[name: selectedRelease]], 
-                                               userRemoteConfigs: [[url: gitRepoUrl]]])
+					
+					echo 'Release selection worked!'
                     
-                    // Rest of your build steps
+					// Clone the repository to a temporary directory and checkout the selected release tag
+                    def gitCloneDir = checkout([$class: 'GitSCM', branches: [[name: selectedRelease]],userRemoteConfigs: [[url: gitRepoUrl]]])
                 }
             }
 		}
         stage('Generate payload') {
             steps {
                 script {
-					
+					// sets up environment variables
                     Update_details((params.Target_Instance).toString())
 					env.pwd = (env.PSW).toString()
                     env.hasPercentage = (pwd).contains('%')
+					// to handle escape characters in password
 					if (hasPercentage) {
 						env.PASSWORD1=passwordHandler(pwd)
 					}
 					def choices = params.Choice.split(",")
-					
-					
-					
 					if(choices.contains('BI Report')){
 						env.BI_Report = true
 					}
 					if(choices.contains('Data Model')){
 						env.DataModel = true
 					}
-					
 				}
 			}
 		}
@@ -90,6 +80,7 @@ pipeline {
 				expression {env.DataModel}
 			}
 			steps{
+				
 				script{
 					def DMPATHTODEPLOY=''
 					def DMactualreportname=''
@@ -97,7 +88,14 @@ pipeline {
 					def DMsoapRequest=''
 					
 					DMPATHTODEPLOY=(params.Data_Model_PATHTODEPLOY).toString()+"/"+(params.DataModel_NAME).toString().replace(".xdmz","")
-					bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.USR} \"${env.PASSWORD1}\" xdmz"
+					
+					try{
+						bat " java EncodeToBase64  ${DataModel_NAME} DMPayload.xml ${DMPATHTODEPLOY} ${env.USR} \"${env.PASSWORD1}\" xdmz"
+					}
+					catch(Exception e){
+						error("Error during build: ${e.getMessage()}");
+						return
+					}
 					DMactualreportname = (params.DataModel_NAME).replace(".xdmz",".xdm")
 					DMreportObjectAbsolutePath=((params.Data_Model_PATHTODEPLOY)+"/"+(DMactualreportname))
 					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
