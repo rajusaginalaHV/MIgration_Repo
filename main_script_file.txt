@@ -13,7 +13,7 @@ def Update_details(instance_selected){
 	if(instance_selected.equals("UAT")){
 		env.USR = env.ERZP_CREDS_USR
 		env.PSW = env.ERZP_CREDS_PSW
-		env.serviceUrl = env.ERZP_URL
+		env.serviceUrl = env.UAT
 	}
 	else if(instance_selected.equals("PROD")){
 		env.USR = env.ESLL_CREDS_USR
@@ -23,7 +23,7 @@ def Update_details(instance_selected){
 	else if(instance_selected.equals("DEV")){
 		env.USR = env.ETIT_CREDS_USR
 		env.PSW = env.ETIT_CREDS_PSW
-		env.serviceUrl = env.ETIT_URL
+		env.serviceUrl = env.DEV
 	}
 }
 
@@ -97,8 +97,11 @@ pipeline {
 						return
 					}
 					DMactualreportname = (params.DataModel_NAME).replace(".xdmz",".xdm")
+					
 					DMreportObjectAbsolutePath=((params.Data_Model_PATHTODEPLOY)+"/"+(DMactualreportname))
+					
 					DMsoapRequest = "<soapenv:Envelope xmlns:soapenv=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:v2=\"http://xmlns.oracle.com/oxp/service/v2\"> \r\n <soapenv:Header/> \r\n <soapenv:Body> \r\n <v2:objectExist> \r\n <v2:reportObjectAbsolutePath>" + DMreportObjectAbsolutePath + "</v2:reportObjectAbsolutePath> \r\n <v2:userID>" + env.USR + "</v2:userID> \r\n <v2:password>" + env.pwd + "</v2:password> \r\n </v2:objectExist> \r\n </soapenv:Body> \r\n </soapenv:Envelope>"
+					
 					writeFile file: 'DM_object_exist_soap_request.xml', text: DMsoapRequest
 					
 					// Execute the SOAP web service call using curl	
